@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommuniHelp</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  background:url('EULA.png') no-repeat center center/cover;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  position:relative;
+  color:#333;
+}
+body::before {
+  content:"";
+  position:absolute;
+  top:0;left:0;
+  width:100%;height:100%;
+  background: rgba(0,0,0,0.2);
+  backdrop-filter: blur(3px);
+  z-index:-1;
+}
+.page { display:none; opacity:0; transform:translateX(100%); transition: all 0.4s ease; width:100%; max-width:900px; padding:10px; }
+.page.active { display:flex; justify-content:center; opacity:1; transform:translateX(0); }
+
+.container {
+  background: rgba(255,255,255,0.95);
+  border-radius: 15px;
+  padding:20px 25px;
+  width:100%;
+  max-width:480px;
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  box-shadow:0 6px 15px rgba(0,0,0,0.2);
+  animation: fadeIn 0.6s ease forwards;
+}
+@keyframes fadeIn { from {opacity:0; transform:scale(0.95);} to {opacity:1; transform:scale(1);} }
+
+h1 { font-size:1.8em; margin-bottom:10px; color:#ff9800; }
+h2 { font-size:1.3em; margin-bottom:10px; color:#ff9800; }
+h3 { font-size:1.1em; margin-bottom:8px; color:#ff9800; }
+
+input, select, textarea { width:100%; padding:8px; margin:4px 0; border-radius:6px; border:1px solid #ccc; font-size:0.85em; }
+
+button { width:65%; max-width:220px; padding:8px 0; margin:3px 0; background-color:#ff9800; color:#fff; border:none; border-radius:10px; font-size:0.95em; cursor:pointer; transition: all 0.3s ease; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+button:hover { background-color:#e68900; box-shadow:0 3px 10px rgba(0,0,0,0.2); }
+
+.link { margin-top:5px; color:#555; cursor:pointer; display:block; font-size:0.8em; }
+
+.dashboard { flex-direction:column; width:100%; max-width:780px; background: rgba(255,255,255,0.95); border-radius: 12px; padding:15px 20px 20px; box-shadow:0 6px 15px rgba(0,0,0,0.2); position:relative; }
+
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+
+.logout-btn { background:#ff9800; padding:6px 12px; border-radius:8px; color:#fff; font-size:0.85em; border:none; cursor:pointer; transition: background 0.3s ease; }
+.logout-btn:hover { background:#e68900; }
+
+nav { display:flex; justify-content:space-around; gap:5px; margin-bottom:15px; }
+nav button { flex:1; font-size:0.85em; padding:6px 0; border-radius:8px; }
+
+.tab { display:none; }
+.tab.active { display:block; animation: slideIn 0.4s ease forwards; }
+@keyframes slideIn { from {opacity:0; transform:translateX(10px);} to {opacity:1; transform:translateX(0);} }
+
+.toast { position:fixed; top:15px; left:50%; transform:translateX(-50%); background:#323232; color:#fff; padding:8px 15px; border-radius:6px; opacity:0; transition: opacity 0.5s ease; z-index:999;}
+.toast.show { opacity:1; }
+
+table { width:100%; border-collapse: collapse; font-size:0.8em;}
+th, td { border:1px solid #ccc; padding:4px; text-align:center;}
+th { background:#ffb74d; }
+.pending { background:#ffe0e0; }
+.received { background:#e0ffe0; }
+
+.summary { background:#fff3e0; padding:8px; border-radius:6px; margin-top:10px; font-size:0.8em; }
+
+.donation-list { max-height:200px; overflow-y: scroll; margin-top:8px; border-radius: 6px; border: 1px solid #ddd; }
+.donation-list::-webkit-scrollbar { width:6px; }
+.donation-list::-webkit-scrollbar-thumb { background-color: #999; border-radius:3px; }
+.donation-list::-webkit-scrollbar-thumb:hover { background-color: #777; }
+.donation-list::-webkit-scrollbar-track { background: #f1f1f1; }
+
+#feedInput { resize:none; font-size:0.8em; }
+
+#registerPage .container { max-height:80vh; overflow-y:auto; padding:20px 15px; gap:8px;}
+#registerPage .container::-webkit-scrollbar { width:5px; }
+#registerPage .container::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius:3px; }
+
+.filter-row { display:flex; gap:5px; margin-bottom:5px; }
+.filter-row input { flex:1; }
+
+@media(max-width:768px){
+  .container { padding:15px 10px; width:90%; }
+  nav { flex-direction: column; gap:5px; }
+  nav button { margin:0; padding:6px; }
+  button { width:100%; max-width:none; }
+  .topbar { flex-direction:column; gap:5px; }
+  .filter-row { flex-direction:column; }
+}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- HOMEPAGE -->
+<div id="homePage" class="page active">
+  <div class="container">
+    <h1>CommuniHelp</h1>
+    <p style="font-size:1.2em; color:#555;"></p>
+    <button onclick="showPage('loginPage')">Login</button>
+    <button onclick="showPage('registerPage')">Register</button>
+  </div>
+</div>
+
+<!-- LOGIN PAGE -->
+<section id="loginPage" class="page">
+  <div class="login-container">
+    <h1 class="login-title">CommuniHelp</h1>
+
+    <form onsubmit="login(event)" class="login-form">
+      <input
+        type="text"
+        id="loginName"
+        placeholder="Enter your username/email"
+        required
+      />
+      <input
+        type="password"
+        id="loginPassword"
+        placeholder="Enter your password"
+        required
+      />
+
+      <div class="remember-container">
+        <input type="checkbox" id="rememberMe" />
+        <label for="rememberMe">Remember Me</label>
+      </div>
+
+      <button type="submit" class="login-btn">Login</button>
+
+      <div class="login-footer">
+  <p>Don’t have an account? <a href="#" onclick="showPage('registerPage')">Register</a></p>
+  <p><a href="#" onclick="showPage('homePage')">Back to Home</a></p>
+</div>
+</form>
+</section>
+
+<style>
+  .remember-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.remember-container input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.remember-container label {
+  cursor: pointer;
+}
+
+.back-home-link {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.login-container {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  padding: 40px;
+  width: 350px;
+  margin: 10% auto;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+.login-footer {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.login-footer a {
+  color: #333;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.login-footer a:hover {
+  color: #333;
+  text-decoration: none;
+}
+
+
+.login-title {
+  font-size: 32px;
+  color: #ff9800;
+  margin-bottom: 10px;
+}
+
+.login-subtitle {
+  color: #444;
+  margin-bottom: 25px;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.login-form .login-btn {
+  width: 100%;
+  background-color: #ff9800;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.login-form .login-btn:hover {
+  background-color: #e68900;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+  margin-top: 10px;
+}
+
+.register-note {
+  font-size: 14px;
+  margin-top: 15px;
+}
+
+.register-note a {
+  color: #ff9800;
+  text-decoration: none;
+  font-weight: bold;
+}
+</style>
+
+
+<!-- REGISTER PAGE -->
+<div id="registerPage" class="page">
+  <div class="container">
+    <h2>Register</h2>
+    <input type="text" id="regName" placeholder="Full Name" required>
+    <input type="email" id="regEmail" placeholder="Email" required>
+    <input type="text" id="regContact" placeholder="Contact Number" required>
+    <input type="password" id="regPassword" placeholder="Password" required>
+    <input type="password" id="regConfirm" placeholder="Confirm Password" required>
+    <button onclick="register()">Create Account</button>
+    <div class="link" onclick="showPage('loginPage')">Already have an account? Login</div>
+    <div class="link" onclick="showPage('homePage')">Back to Home</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboardPage" class="page dashboard">
+  <div class="topbar">
+    <h2 style="margin:0; color:#ff9800;">Homepage</h2>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <nav>
+    <button onclick="switchTab('homeTab')">Home</button>
+    <button onclick="switchTab('donationTab')">Donation</button>
+    <button onclick="switchTab('feedTab')">Feed</button>
+    <button onclick="switchTab('reportsTab')">Summary</button>
+  </nav>
+
+  <div id="homeTab" class="tab active">
+  <h3>Welcome to CommuniHelp!</h3>
+  <p>Use the tabs above to add donations, view feed posts, and see summary reports.</p>
+</div>
+
+
+  <!-- DONATION TAB -->
+<div id="donationTab" class="tab">
+  <form id="donationForm">
+    <input type="text" id="donor" placeholder="Donor Name" required>
+
+    <select id="category" required onchange="toggleAmountField()">
+      <option value="">Select Category</option>
+      <option value="Clothes">Clothes</option>
+      <option value="Food">Food</option>
+      <option value="Money">Money</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <input type="text" id="item" placeholder="Item Name" required>
+    <input type="number" id="quantity" placeholder="Quantity" min="1">
+    <input type="number" id="amount" placeholder="Amount (₱)" min="0" step="0.01" style="display:none;">
+    <input type="text" id="recipient" placeholder="Recipient" required>
+
+    <button type="submit">Add Donation</button>
+  </form>
+
+  <div class="donation-list">
+    <div class="filter-row">
+      <input id="filterDonor" placeholder="Filter by Donor" oninput="renderDonations()">
+      <input id="filterItem" placeholder="Filter by Item" oninput="renderDonations()">
+      <input id="filterRecipient" placeholder="Filter by Recipient" oninput="renderDonations()">
+    </div>
+
+    <table id="donationTable">
+      <thead>
+        <tr>
+          <th>Donor</th><th>Category</th><th>Item</th><th>Qty/₱Amount</th>
+          <th>Recipient</th><th>Pending Date</th><th>Received Date</th>
+          <th>Status</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+  <!-- FEED TAB -->
+<div id="feedTab" class="tab">
+  <h3>Community Feed</h3>
+
+  <textarea
+    id="feedInput"
+    rows="3"
+    placeholder="Share something..."
+  ></textarea>
+
+  <div class="feed-buttons">
+    <button onclick="addPost()">Post</button>
+    <button onclick="resetFeed()" class="danger-btn">Reset Feed</button>
+  </div>
+
+  <ul id="feedList"></ul>
+</div>
+
+<style>
+  /* FEED TAB STYLING */
+  #feedTab {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  #feedTab h3 {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  #feedInput {
+    width: 100%;
+    font-size: 18px;      
+    padding: 12px;
+    line-height: 1.5;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    box-sizing: border-box;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+
+  #feedInput:focus {
+    border-color: #ff9800;
+    outline: none;
+  }
+
+  .feed-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .feed-buttons button {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background-color: #ff9800;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .feed-buttons button:hover {
+    background-color: #e68900;
+  }
+
+  .danger-btn {
+    background-color: #d9534f;
+  }
+
+  .danger-btn:hover {
+    background-color: #c9302c;
+  }
+
+  #feedList {
+    list-style: none;
+    margin-top: 20px;
+    padding: 0;
+  }
+
+  #feedList li {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  #feedList li button {
+    margin-top: 8px;
+    margin-right: 5px;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #6c757d;
+    color: white;
+  }
+
+  #feedList li button:hover {
+    opacity: 0.85;
+  }
+
+  #feedList li button:nth-child(2) {
+    background-color: #d9534f;
+  }
+</style>
+
+
+  <!-- SUMMARY TAB -->
+  <div id="reportsTab" class="tab">
+    <h3>Summary</h3>
+    <div class="summary">
+      <h4>Recent Donations</h4>
+      <table id="reportRecentTable">
+        <thead>
+          <tr>
+            <th>Donor</th><th>Category</th><th>Item</th><th>Qty/₱Amount</th>
+            <th>Recipient</th><th>Pending Date</th><th>Received Date</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <h4>Total Donations by Type</h4>
+      <table id="totalByTypeTable">
+        <thead><tr><th>Food</th><th>Clothes</th><th>Money (₱)</th></tr></thead>
+        <tbody>
+          <tr>
+            <td id="totalFood">0</td>
+            <td id="totalClothes">0</td>
+            <td id="totalMoney">0</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>Total Donations by User</h4>
+      <table id="totalByUserTable">
+        <thead><tr><th>User</th><th>Food</th><th>Clothes</th><th>Money (₱)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// Data
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let currentUser = null;
+let donations = JSON.parse(localStorage.getItem("donations")) || [];
+let posts = JSON.parse(localStorage.getItem("posts")) || [];
+let currentSort = { key: null, asc: true };
+
+// Navigation
+function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function switchTab(id) {
+  // hide all tab contents safely
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+
+  // find the tab to show
+  const tab = document.getElementById(id);
+  if (tab) {
+    tab.classList.add("active");
+  } else {
+    console.warn("Tab not found:", id);
+  }
+}
+
+
+// Toast
+function showToast(msg){ const toast=document.getElementById('toast'); toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3000); }
+
+// Register/Login
+function register(){
+  const name=document.getElementById("regName").value.trim();
+  const email=document.getElementById("regEmail").value.trim();
+  const contact=document.getElementById("regContact").value.trim();
+  const pass=document.getElementById("regPassword").value;
+  const confirm=document.getElementById("regConfirm").value;
+  if(!name||!email||!contact||!pass||!confirm) return alert("Please fill all fields!");
+  if(pass!==confirm) return alert("Passwords do not match!");
+  if (users.find(u => u.name === name)) return alert("Name already registered!");
+  if (users.find(u => u.email === email)) return alert("Email already registered!");
+
+  users.push({name,email,contact,pass});
+  localStorage.setItem("users",JSON.stringify(users));
+  alert("Registration successful!");
+  showPage("loginPage");
+}
+function login(event) {
+  event.preventDefault();
+
+  const loginInput = document.getElementById("loginName").value.trim();
+  const userPassword = document.getElementById("loginPassword").value.trim();
+  const rememberCheckbox = document.getElementById("rememberMe");
+
+  // Allow login by either name or email
+  const user = users.find(
+    (u) =>
+      (u.email === loginInput || u.name === loginInput) &&
+      u.pass === userPassword
+  );
+
+  if (!user) {
+    alert("Invalid email/name or password.");
+    return;
+  }
+
+  // Save the logged-in user's name and email
+  currentUser = { name: user.name, email: user.email };
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+
+  // Remember Me
+  if (rememberCheckbox.checked) {
+    localStorage.setItem("rememberedName", loginInput);
+  } else {
+    localStorage.removeItem("rememberedName");
+  }
+
+  // Redirect to homepage and show username in toast
+  showPage("dashboardPage");
+  showToast(`Welcome back, ${user.name}!`);
+}
+
+window.addEventListener("load", () => {
+  const rememberedName = localStorage.getItem("rememberedName");
+  if (rememberedName) {
+    document.getElementById("loginName").value = rememberedName;
+    document.getElementById("rememberMe").checked = true;
+  }
+
+  const current = localStorage.getItem("currentUser");
+  if (current) {
+    currentUser = JSON.parse(current);
+    showPage("dashboardPage");
+    showToast(`Welcome back, ${currentUser.name}!`);
+  }
+});
+
+// Donations
+document.getElementById("donationForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const donor=document.getElementById("donor").value.trim();
+  const category=document.getElementById("category").value;
+  const item=document.getElementById("item").value.trim();
+  const quantity=parseFloat(document.getElementById("quantity").value)||0;
+  const amount=parseFloat(document.getElementById("amount").value)||0;
+  const recipient=document.getElementById("recipient").value.trim();
+  if(!donor||!category||!item||!recipient) return alert("Please fill all required fields!");
+  if(category==="Money" && amount<=0) return alert("Please enter a valid money amount!");
+  if(category!=="Money" && quantity<=0) return alert("Please enter a valid quantity!");
+
+  const form=document.getElementById("donationForm");
+  if(form.dataset.editIndex!==undefined){
+    const index=parseInt(form.dataset.editIndex);
+    const old=donations[index];
+    donations[index]={donor,category,item,quantity,amount,recipient,pendingDate:old.pendingDate,receivedDate:old.receivedDate,status:old.status};
+    delete form.dataset.editIndex;
+    showToast("Donation updated!");
+  } else {
+    donations.push({donor,category,item,quantity,amount,recipient,pendingDate:new Date().toLocaleString(),receivedDate:"",status:"Pending"});
+  }
+
+  localStorage.setItem("donations",JSON.stringify(donations));
+  renderDonations();
+  updateReports();
+  e.target.reset();
+  toggleAmountField(); // resets visibility to default
+});
+
+function renderDonations(){
+  const tbody=document.querySelector("#donationTable tbody");
+  tbody.innerHTML="";
+  const fDonor=document.getElementById("filterDonor").value.toLowerCase();
+  const fItem=document.getElementById("filterItem").value.toLowerCase();
+  const fRecipient=document.getElementById("filterRecipient").value.toLowerCase();
+
+  let filtered=donations.filter(d=>d.donor.toLowerCase().includes(fDonor)&&d.item.toLowerCase().includes(fItem)&&d.recipient.toLowerCase().includes(fRecipient));
+
+  if(currentSort.key){
+    filtered.sort((a,b)=>{
+      const valA=new Date(a[currentSort.key]||0);
+      const valB=new Date(b[currentSort.key]||0);
+      return currentSort.asc?valA-valB:valB-valA;
+    });
+  }
+
+  filtered.forEach((d,index)=>{
+    const row=document.createElement("tr");
+    row.className=d.status==="Pending"?"pending":"received";
+    row.innerHTML=`
+      <td>${d.donor}</td>
+      <td>${d.category}</td>
+      <td>${d.item}</td>
+      <td>${d.category==="Money"?"₱"+d.amount.toFixed(2):d.quantity}</td>
+      <td>${d.recipient}</td>
+      <td>${d.pendingDate||"-"}</td>
+      <td>${d.receivedDate||"-"}</td>
+      <td>${d.status}</td>
+      <td>
+        ${d.status==="Pending"?`<button onclick="markReceived(${index})">Mark Received</button>`:""}
+        <button onclick="editDonation(${index})">Edit</button>
+        <button onclick="deleteDonation(${index})">Delete</button>
+      </td>`;
+    tbody.appendChild(row);
+  });
+}
+function markReceived(i){ donations[i].status="Received"; donations[i].receivedDate=new Date().toLocaleString(); localStorage.setItem("donations",JSON.stringify(donations)); renderDonations(); updateReports(); showToast("Donation marked as received!"); }
+function editDonation(i) {
+  const d = donations[i];
+  document.getElementById("donor").value = d.donor;
+  document.getElementById("category").value = d.category;
+  document.getElementById("item").value = d.item;
+  document.getElementById("quantity").value = d.quantity;
+  document.getElementById("amount").value = d.amount;
+  document.getElementById("recipient").value = d.recipient;
+  document.getElementById("donationForm").dataset.editIndex = i;
+  toggleAmountField(); // ensures correct field visibility when editing
+  showToast("Edit mode activated.");
+}
+
+function deleteDonation(i){ if(confirm("Delete this donation?")){ donations.splice(i,1); localStorage.setItem("donations",JSON.stringify(donations)); renderDonations(); updateReports(); showToast("Donation deleted."); } }
+
+function toggleAmountField() {
+  const category = document.getElementById("category").value;
+  const amountField = document.getElementById("amount");
+  const quantityField = document.getElementById("quantity");
+
+  if (category === "Money") {
+    amountField.style.display = "block";
+    quantityField.style.display = "none";
+    quantityField.value = "";
+  } else {
+    amountField.style.display = "none";
+    amountField.value = "";
+    quantityField.style.display = "block";
+  }
+}
+
+
+// FEED
+function addPost() {
+  if (!currentUser) {
+    alert("Please log in first!");
+    return;
+  }
+
+  const text = document.getElementById("feedInput").value.trim();
+  if (!text) return alert("Please enter something to post!");
+
+  const editIndex = document.getElementById("feedInput").dataset.editIndex;
+
+  if (editIndex !== undefined) {
+    posts[editIndex].text = text;
+    posts[editIndex].date = new Date().toLocaleString();
+    delete document.getElementById("feedInput").dataset.editIndex;
+    showToast("Post updated!");
+  } else {
+    posts.unshift({
+      name: currentUser.name, // uses username instead of email
+      text,
+      date: new Date().toLocaleString(),
+    });
+    showToast("Post added!");
+  }
+
+  localStorage.setItem("posts", JSON.stringify(posts));
+  renderPosts();
+  document.getElementById("feedInput").value = "";
+}
+
+function renderPosts() {
+  const list = document.getElementById("feedList");
+  list.innerHTML = "";
+
+  posts.forEach((p, index) => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <b>${p.name}</b> (${p.date}): ${p.text}
+      <br>
+      <button onclick="editPost(${index})">Edit</button>
+      <button onclick="deletePost(${index})" style="background:#d9534f;">Delete</button>
+    `;
+    list.appendChild(li);
+  });
+}
+
+function editPost(index) {
+  const post = posts[index];
+  document.getElementById("feedInput").value = post.text;
+  document.getElementById("feedInput").dataset.editIndex = index;
+  showToast("Edit mode activated for post #" + (index + 1));
+}
+
+function deletePost(index) {
+  if (confirm("Delete this post?")) {
+    posts.splice(index, 1);
+    localStorage.setItem("posts", JSON.stringify(posts));
+    renderPosts();
+    showToast("Post deleted.");
+  }
+}
+
+function resetFeed() {
+  if (confirm("Are you sure you want to reset the entire feed?")) {
+    posts = [];
+    localStorage.removeItem("posts");
+    renderPosts();
+    showToast("Feed reset successfully.");
+  }
+}
+
+// Summary
+function updateReports(){
+  const recentBody=document.querySelector("#reportRecentTable tbody");
+  recentBody.innerHTML="";
+  donations.slice(-5).reverse().forEach(d=>{
+    const row=document.createElement("tr");
+    row.innerHTML=`<td>${d.donor}</td><td>${d.category}</td><td>${d.item}</td><td>${d.category==="Money"?"₱"+d.amount.toFixed(2):d.quantity}</td><td>${d.recipient}</td><td>${d.pendingDate}</td><td>${d.receivedDate||"-"}</td><td>${d.status}</td>`;
+    recentBody.appendChild(row);
+  });
+
+  const totalFood=donations.filter(d=>d.category==="Food").reduce((a,b)=>a+b.quantity,0);
+  const totalClothes=donations.filter(d=>d.category==="Clothes").reduce((a,b)=>a+b.quantity,0);
+  const totalMoney=donations.filter(d=>d.category==="Money").reduce((a,b)=>a+b.amount,0);
+  document.getElementById("totalFood").textContent=totalFood;
+  document.getElementById("totalClothes").textContent=totalClothes;
+  document.getElementById("totalMoney").textContent="₱"+totalMoney.toFixed(2);
+
+  const userTotals={};
+  donations.forEach(d=>{
+    if(!userTotals[d.donor]) userTotals[d.donor]={food:0,clothes:0,money:0};
+    if(d.category==="Food") userTotals[d.donor].food+=d.quantity;
+    else if(d.category==="Clothes") userTotals[d.donor].clothes+=d.quantity;
+    else if(d.category==="Money") userTotals[d.donor].money+=d.amount;
+  });
+  const userBody=document.querySelector("#totalByUserTable tbody");
+  userBody.innerHTML="";
+  Object.keys(userTotals).forEach(user=>{
+    const u=userTotals[user];
+    const row=document.createElement("tr");
+    row.innerHTML=`<td>${user}</td><td>${u.food}</td><td>${u.clothes}</td><td>₱${u.money.toFixed(2)}</td>`;
+    userBody.appendChild(row);
+  });
+}
+
+function logout() {
+  // Remove current user session
+  localStorage.removeItem("currentUser");
+
+  // Clear Remember Me and current user data
+localStorage.removeItem("rememberedName");
+
+  currentUser = null;
+  showPage("loginPage");
+  showToast("You have been logged out.");
+}
+// Initialize page data
+renderDonations();
+renderPosts();
+updateReports();
+
+window.addEventListener("DOMContentLoaded", toggleAmountField);
+</script>
+</body>
+</html>
