@@ -365,7 +365,7 @@ th { background:#ffb74d; }
 </div>
 
 <style>
-  /* 🎨 FEED TAB STYLING */
+  /*  FEED TAB STYLING */
   #feedTab {
     max-width: 700px;
     margin: 0 auto;
@@ -379,7 +379,7 @@ th { background:#ffb74d; }
 
   #feedInput {
     width: 100%;
-    font-size: 18px;       /* ✅ enlarged text */
+    font-size: 18px;      
     padding: 12px;
     line-height: 1.5;
     border: 2px solid #ccc;
@@ -560,7 +560,7 @@ function login(event) {
     return;
   }
 
-  // ✅ Save the logged-in user's name and email
+  //  Save the logged-in user's name and email
   currentUser = { name: user.name, email: user.email };
   localStorage.setItem("currentUser", JSON.stringify(currentUser));
 
@@ -571,7 +571,7 @@ function login(event) {
     localStorage.removeItem("rememberedName");
   }
 
-  // ✅ Redirect to homepage and show username in toast
+  //  Redirect to homepage and show username in toast
   showPage("dashboardPage");
   showToast(`Welcome back, ${user.name}!`);
 }
@@ -669,7 +669,7 @@ function editDonation(i) {
   document.getElementById("amount").value = d.amount;
   document.getElementById("recipient").value = d.recipient;
   document.getElementById("donationForm").dataset.editIndex = i;
-  toggleAmountField(); // ✅ ensures correct field visibility when editing
+  toggleAmountField(); //  ensures correct field visibility when editing
   showToast("Edit mode activated.");
 }
 
@@ -711,7 +711,7 @@ function addPost() {
     showToast("Post updated!");
   } else {
     posts.unshift({
-      name: currentUser.name, // ✅ uses username instead of email
+      name: currentUser.name, //  uses username instead of email
       text,
       date: new Date().toLocaleString(),
     });
@@ -818,3 +818,4 @@ window.addEventListener("DOMContentLoaded", toggleAmountField);
 </script>
 </body>
 </html>
+
